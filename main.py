@@ -1,30 +1,160 @@
 import mysql.connector as sqltor
 mycon = sqltor.connect(host = "localhost", user = "root", passwd = "Admin$#")
 cursor = mycon.cursor()
+cursor.execute("DROP database if exists Products")
 cursor.execute("CREATE database Products")
-print("List of databases: ")
-cursor.execute("SHOW DATABASES")
-print(cursor.fetchall())
-if mycon.is_connected():
-    print("Connection succesfull")
-else: 
-    print("Connection failed")
+cursor.execute("Use Products")
+product_table = "CREATE table product(Code_number bigint, Name varchar(100), Price integer, Weight float, Quantity integer,\
+     Value float)"
+cursor.execute(product_table)  
+product1 = "INSERT into product values({},'{}',{},{},{},{})".format(8907394724836,"ABC biscuit",10,80,20,200)   
+product2 = "INSERT into product values({},'{}',{},{},{},{})".format(8907376872647,"GHF soap",45,100,20,900)
+product3 = "INSERT into product values({},'{}',{},{},{},{})".format(8907394722136,"XYZ toothpaste",20,45,20,400)
+product4 = "INSERT into product values({},'{}',{},{},{},{})".format(8907394756736,"KJL dishwashing liquid",165,800,20,3300)
+product5 = "INSERT into product values({},'{}',{},{},{},{})".format(8907394999936,"NRY rice",200,1000,50,10000)
+cursor.execute(product1)
+cursor.execute(product2)
+cursor.execute(product3)
+cursor.execute(product4)
+cursor.execute(product5)
 
-"""
+
+
 def admin():
-    print("1.Add New Product\n2.Review Products\n3.Remove Product\n4.Update Product")
-    input_choice = int(input("Enter your choice: "))
-    if input_choice == 1:
+    while True:
+        print("\n1.Add New Product\n2.Review Products\n3.Remove Product\n4.Exit\n")
+        input_choice = int(input("Enter your choice: "))
+        if input_choice == 1:
+            prod_code = int(input("Enter product code: "))
+            prod_name = input("Enter product name: ")
+            prod_price = int(input("Enter product price: "))
+            prod_weight = int(input("Enter product weight: "))
+            prod_quantity = int(input("Enter quantity of product: "))
+            prod_value = prod_price * prod_quantity
+            add_product = "INSERT into product values({},'{}',{},{},{},{})".format\
+                (prod_code,prod_name,prod_price,prod_weight,prod_quantity,prod_value)
+            cursor.execute(add_product)
+            cursor.execute("select * from product")
+            product_list = cursor.fetchall()
+            for row in product_list:
+                print(row)
+            
+        elif input_choice == 2:
+            cursor.execute("select * from product")
+            product_list = cursor.fetchall()
+            for row in product_list:
+                print(row)
 
+        elif input_choice == 3:
+            print("Product list:")
+            cursor.execute("select * from product")
+            product_list = cursor.fetchall()
+            for row in product_list:
+                print(row)
+            cursor.execute("select Code_number from product")
+            code_list = cursor.fetchall()
+            while True:
+                prod_code = int(input("\nEnter product code to delete: "))
+                flag = 0
+                for i in code_list:
+                    if prod_code == i[0]:
+                        prod_del = "DELETE from product where Code_number = {}".format(prod_code)
+                        cursor.execute(prod_del)
+                        print("Product deleted succesfully")
+                        flag = 1
+                        break      
+                if flag == 0:
+                    print("Enter valid product code")     
+                else:
+                    break
+        elif input_choice == 4:
+            break
+        else:
+            print("Invalid choice")
+    return 
 
-print("Welcome")
-print("1.Admin\n2.User\n3.Exit")
-admin_password = "Admin123"
-choice = int(input("Enter (A/U): "))
-if choice == "A":
-    input_password = input("Enter your password: ")
-    if input_password == admin_password:
-        admin()
-else:
-    user()
-"""
+def user():
+    cart=[]
+    while True:
+        print("\n1.Add items to cart\n2.Checkout to billing\n3.Exit")
+        input_choice = int(input("Enter your choice: "))
+        if input_choice == 1:
+            print("\nProduct rack:")
+            cursor.execute("select * from product")
+            product_list = cursor.fetchall()
+            for i in product_list:
+                print("*"+i[1])
+            prod_choice = input("Enter product name: ")
+            for i in product_list:
+                if prod_choice in i:
+                    product = i
+                    break
+            while True:
+                flag = 0
+                prod_quantity = int(input("Enter quantity: "))
+                if prod_quantity > product[4]:
+                    print("Available quantity of product: "+product_list[4])
+                    print("Enter within the range\n")
+                else:
+                    break            
+
+            total_weight = prod_quantity * product[3]
+            machine_weight = prod_quantity * product[3] #Generated by weighing machine
+
+            if total_weight == machine_weight:
+                prod_list = {}
+                prod_list["Product_Name"] = prod_choice
+                prod_list["Cost per quantity"] = product[2]
+                prod_list["Total quantity"] = prod_quantity
+                prod_list["Total cost"] = product[2] * prod_quantity
+                cart.append(prod_list)
+                quantity_update = "update product set Quantity = Quantity - {} where Name = '{}'".format(prod_quantity,prod_choice)
+                current_value =  prod_quantity * product[2]
+                value_update = "update product set Value = Value - {} where Name = '{}'".format(current_value,prod_choice)
+                cursor.execute(quantity_update)
+                cursor.execute(value_update)
+            else:
+                print("Error")
+
+            print("\nCart:")
+            if len(cart) == 0:
+                print("Empty cart")
+            else:
+                for i in cart:
+                    print(i)
+
+        elif input_choice == 2:
+            if len(cart) == 0:
+                print("Your cart is empty, add products to proceed for billing\n")
+            else:
+                total_bill = 0
+                print("Final cart:")
+                for i in cart:
+                    total_bill += i["Total cost"]
+                    print(i)
+                print("Total bill amount: "+"Rs."+str(total_bill))
+                break
+
+        elif input_choice == 3:
+            break
+        else:
+            print("Invalid choice\n")
+    return 
+
+print("\nWelcome")
+
+while True:
+    print("\n1.Admin\n2.User\n3.Exit\n")
+    admin_password = "Admin123"
+    choice = input("Enter (A/U/E): ")
+    if choice == "A":
+        input_password = input("Enter your password: ")
+        if input_password == admin_password:
+            admin()
+    elif choice == "U":
+        user()
+        break
+    elif choice == "E":
+        break
+    else:
+        print("Invalid choice")
